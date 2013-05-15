@@ -1,0 +1,15 @@
+{
+    "name": "DataMigrate",
+    "description": "",
+    "license": "BSD-3-Clause",
+    "require": {
+        "php": ">=5.3.3",
+        "rmccue/Requests": "dev-master@dev",
+        "gabordemooij/redbean": "dev-master"
+    },
+	"autoload": {
+        "psr-0": {
+			"Requests": "library/"
+		}
+    }
+}
