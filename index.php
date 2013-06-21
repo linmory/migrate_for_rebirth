@@ -71,15 +71,34 @@ $locationMapping = array(
 
 $res = Requests::post('http://www.dp.com/apiv1/user/login.json', array(
     'Content-type' => 'application/json'
-), json_encode(array('username' => 'AlloVince', 'password' => '123456')));
+), json_encode(array('username' => '华尔街见闻实时新闻', 'password' => 'huaerjie001')));
+
 
 $loginRes = json_decode($res->body);
+
+function checkImorted($nid){
+    $filename = __DIR__ . '/imported.log';
+    $contents = @file_get_contents($filename);
+    $ids = explode("\n", $contents);
+    if(in_array($nid, $ids)){
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function recordNode($nid){
+    $filename = __DIR__ . '/imported.log';
+    $contents = @file_get_contents($filename);
+    $contents .= (string) $nid . "\n";
+    @file_put_contents($filename, $contents);
+}
 
 function createNode($nid){
     global $loginRes, $locationMapping, $cateMapping;
 
     $news = R::findOne('news', 'nid = ? ', array($nid));
-    echo "News $nid imported\n";
+    echo "Importing news $nid \n";
 
     if(!$news){
         return;
@@ -105,8 +124,8 @@ function createNode($nid){
 
     $obj = new stdClass();
     $obj->title = $news->title;
-    $obj->status = 1;
-    $obj->comment = 1;
+    $obj->status = 1;  //
+    $obj->comment = 2; //1 close, 2 open
     $obj->sticky = 0;
     $obj->type = 'livenews';
     $obj->language = 'zh-hans';
@@ -114,7 +133,7 @@ function createNode($nid){
     //$obj->created = $news->created;
     //$obj->changed = $news->created;
     $body = new stdClass();
-    $body->value = $news->content ? $new->content : $news->title;
+    $body->value = !empty($news->contents) ? (string) $news->contents : $news->title;
     $body->format = 2;
     $obj->body = new stdClass();
     $obj->body->und[] = $body;
@@ -167,20 +186,33 @@ function createNode($nid){
         'Cookie' => $loginRes->session_name . '=' . $loginRes->sessid,
         'Content-type' => 'application/json'
     ), json_encode($obj));
+    //p($res);
 
-    p($obj);
+    echo ' | res : ' . $res->status_code . "\n";
+    //p($obj);
 
     return $res;
 }
 
 
-$res = createNode(20314);
-p($res);
+$nid = @$_GET['nid'] ? $_GET['nid'] : 350;
+for($i = 0; $i < 30; $i++){
+    if(!checkImorted($nid)){
+        $createRes = createNode($nid);
+        if($createRes->status_code == 200){
+            recordNode($nid);
+        }
+    }
+    $nid++;
+}
+
+//header('location: http://localhost/data-migrate/index.php?nid=' . $nid);
 
 /*
-$nid = 350;
 while($nid <= 20314){
     createNode($nid);
     $nid++;
 }
 */
+?>
+<meta http-equiv="refresh" content="0;url=http://localhost/data-migrate/index.php?nid=<?=$nid?>" /> 
