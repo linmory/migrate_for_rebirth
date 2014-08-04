@@ -1,15 +1,15 @@
 {
-    "name": "DataMigrate",
+    "name": "wallstreetcn/data-migrate",
     "description": "",
-    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "shao liu",
+            "email": "liujaysen@gmail.com"
+        }
+    ],
     "require": {
         "php": ">=5.3.3",
-        "rmccue/Requests": "dev-master@dev",
-        "gabordemooij/redbean": "dev-master"
-    },
-	"autoload": {
-        "psr-0": {
-			"Requests": "library/"
-		}
+        "bca/curl": "dev-master",
+        "doctrine/dbal": "2.5.*@dev"
     }
 }

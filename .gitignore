@@ -1,2 +1,10 @@
 composer.lock
 vendor/*
+backup/*
+logs/*
+sql/*
+!backup/.gitkeep
+!logs/.gitkeep
+!sql/.gitkeep
+data.log
+
