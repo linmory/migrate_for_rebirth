@@ -2,72 +2,132 @@
 use BCA\CURL\CURL;
 
 include './init_autoloader.php';
+include './common.inc.php';
 
-define('F_NEWS_LIST_URL','http://wscn.dev/apiv1/migrate/livenews.json');
+define('F_NEWS_LIST_URL','http://wscn.dev/apiv1/migrate_livenews.json');
 define('F_NEWS_DETAIL_URL','http://wscn.dev/apiv1/node/%s.json');
 
-define('T_NEWS_DETAIL_URL','http://api.goldtoutiao.com/v2/post');
+define('T_NEWS_DETAIL_URL','http://api.goldtoutiao.com/v2/livenews');
 define('MAX_PAGE',689);
 //define('MAX_PAGE',10);
 
 
-define('LOG_DIR','backup/');
-$currentMaxPage = getMaxNumber(LOG_DIR);
-$currentMaxNid = getMaxNumber(LOG_DIR.$currentMaxPage.'/');
+define('LOG_DIR','backup/livenews');
+
+$logData = getData();
+$currentMaxPage = !empty($logData['live_news']['currentMaxPage']) ? $logData['live_news']['currentMaxPage'] : 1;
+$currentMaxNid = !empty($logData['live_news']['$currentMaxNid']) ? $logData['live_news']['currentMaxNid'] : 0;
+
 print_r($currentMaxNid);
 
-//$arr = array(
-//    13761 => '世界杯',
-//    13762 => '世界杯头条',
-//    13079 => '博客',
-//    13080 => '博客头条',
-//    3118  => '头条',
-//    11212 => '特刊',
-//    11213 => '特刊头条',
-//    11142 => '黄金头条',
-//    3120  => '专题',
-//    3119  => '编辑推荐'
-//);
 
-//taxonomy_vocabulary_6 特别展示
-$category_6 = array(
-    13761 => 2,
-    13762 => 3,
-    13079 => 4,
-    13080 => 5,
-    3118  => 6,
-    11212 => 7,
-    11213 => 8,
-    11142 => 9,
-    3120  => 10,
-    3119  => 11
+//
+//category-und  新闻分类
+//9494 债市
+//9500 公司
+//9497 商品期货
+//9495 外汇
+//9496 央行
+//9499  时政与官员言论
+//9501 经济
+//9498 经济数据
+//9493 股市
+//9503 见闻早餐
+//9502 货币市场
+//12941 贵金属
+
+$category = array(
+    '9494'=> 4,
+    '9500'=> 2,
+    '9497'=> 3,
+    '9495'=> 1,
+    '9496'=> 5,
+    '9499'=> 8,
+    '9501'=> 8,
+    '9498'=> 6,
+    '9493'=> 2,
+    '9503'=> 7,
+    '9502'=> 4,
+    '1294'=> 3
 );
 
 
-//3562 见闻早餐
-//3917 见闻图表
-//7349 欧洲
-//7350 美国
-//7351 中国
-//7352 其他地区
-//4  经济
-//7353 央行
-//48 市场
-//7354 公司
+//location-und 地区分类
+//
+//
+//'9488'=>'中东',
+//'9479'=>'中国',
+//'9490'=>'亚洲其他地区',
+//'9484'=>'俄罗斯',
+//'9482'=>'加拿大',
+//'9486'=>'印度',
+//'9485'=>'巴西',
+//'9491'=>'拉美',
+//'9480'=>'日本',
+//'9478'=>'欧元区',
+//'9492'=>'澳洲',
+//'9487'=>'瑞士',
+//'9477'=>'美国',
+//'9483'=>'英国',
+//'9489'=>'非洲',
+//'9481'=>'香港',
 
-//taxonomy_vocabulary_2 文章分类
-$category_2 = array(
-    3562 => 13,
-    3917 => 14,
-    7349 => 15,
-    7350 => 16,
-    7351 => 17,
-    7352 => 18,
-    4  => 19,
-    7353 => 20,
-    48 => 21,
-    7354 => 22,
+$location = array(
+    '9488'=>19,
+    '9479'=>9,
+    '9490'=>19,
+    '9484'=>19,
+    '9482'=>15,
+    '9486'=>19,
+    '9485'=>19,
+    '9491'=>19,
+    '9480'=>12,
+    '9478'=>11,
+    '9492'=>14,
+    '9487'=>16,
+    '9477'=>10,
+    '9483'=>13,
+    '9489'=>19,
+    '9481'=>9
 );
+
+// 颜色
+//$color
+//"red"=>'红色',
+//"blue"=>'蓝色',
+//"black"=>'黑色',
+
+$color = array(
+    'red'=>'红色',
+    'blue'=>'蓝色',
+    'black'=>'黑色',
+);
+
+//格式
+$format = array(
+    'bold' => '加粗'
+);
+
+//图标
+//'alert' 提醒
+//'calendar' 日程
+//'chart' 折线
+//'chart_pie' 柱状
+//'download' 下载
+//'rumor' 传言
+//'warning' 警告
+//'news' 消息
+$icon = array(
+    'alert' => '提醒',
+    'calendar' => '日程',
+    'chart' => '折线',
+    'chart_pie' => '柱状',
+    'download' => '下载',
+    'rumor' => '传言',
+    'warning' => '警告',
+    'news' => '消息',
+);
+
 
 $img_arr = array('.jpg', '.png', '.jpeg', '.gif');
 
@@ -104,28 +164,39 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
 //        $row['field_related'] = $detail['field_related']['und'];
 
 
-          //特别展示
-//        $row['taxonomy_vocabulary_6'] = $detail['taxonomy_vocabulary_6']['und'];
-        if(!empty($detail['taxonomy_vocabulary_6']['und'])){
-            foreach($detail['taxonomy_vocabulary_6']['und'] as $v){
-//                echo $v['tid'].PHP_EOL;
-                $row['categories'][] = $category_6[$v['tid']];
+        //新闻分类
+        if(!empty($detail['field_category']['und'])){
+            foreach($detail['field_category']['und'] as $v){
+                $row['categories'][] = $category[$v['tid']];
             }
         }
 
 
-        //文章分类
-        if(!empty($detail['taxonomy_vocabulary_2']['und'])){
-            foreach($detail['taxonomy_vocabulary_2']['und'] as $v){
+        //地区分类
+        if(!empty($detail['field_location']['und'])){
+            foreach($detail['field_location']['und'] as $v){
 //                echo $v['tid'].PHP_EOL;
-                $row['categories'][] = $category_2[$v['tid']];
+                $row['categories'][] = $location[$v['tid']];
             }
         }
 
-        //标签
-        if(!empty($detail['taxonomy_vocabulary_3']['und'])){
-            foreach($detail['taxonomy_vocabulary_3']['und'] as $v){
-                $row['tags'][] = $v['name'];
+
+        $row['importance'] = 1;
+        //颜色
+        if(!empty($detail['field_color']['und'])){
+            foreach($detail['field_color']['und'] as $v){
+               if($v['value'] == 'red'){
+                   $row['importance'] = 2;
+               }
+            }
+        }
+
+        //格式
+        if(!empty($detail['field_format']['und'])){
+            foreach($detail['field_format']['und'] as $v){
+                if($v['value'] == 'bold'){
+                    $row['importance'] = 3;
+                }
             }
         }
 
@@ -133,7 +204,6 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
         //保存文章中的图片 并转换路径
         $row['text']['content'] = getImg($detail['body']['und'][0]['safe_value'],$dir);
         $row['text']['content'] = removeImg($row['text']['content']);
-        $row['summary'] = $detail['body']['und'][0]['safe_summary'];
 
         //保存附件图片
         if(!empty($detail['upload']['und'][0]['filename'])){
@@ -153,30 +223,11 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
         logContent($dir.'content.old',$articleContent);
         logContent($dir.'content.new',$response);
 
-//        print_r($row);
-//        exit;
+        print_r($row);
+        exit;
     }
 //    exit;
 
-}
-
-function saveData($data)
-{
-    $str = '<?php'.PHP_EOL.'return ';
-    $str .= var_export($data,TRUE);
-    $str .= ';';
-
-    file_put_contents('./data.log',$str);
-}
-
-function getData()
-{
-    if(file_exists('./data.log')){
-        $data = include './data.log';
-    }
-
-    if(empty($data)) $data = array();
-    return $data;
 }
 
 /**

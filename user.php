@@ -2,6 +2,7 @@
 use BCA\CURL\CURL;
 
 include './init_autoloader.php';
+include './common.inc.php';
 
 define('O_LIST_URL','http://wscn.dev/apiv1/user.json');
 define('O_DETAIL_URL','http://wscn.dev/apiv1/user/%s.json');
@@ -97,24 +98,7 @@ fclose($fp);
 //var_dump($currentMaxUid);
 
 
-function saveData($data)
-{
-    $str = '<?php'.PHP_EOL.'return ';
-    $str .= var_export($data,TRUE);
-    $str .= ';';
 
-    file_put_contents('./data.log',$str);
-}
-
-function getData()
-{
-    if(file_exists('./data.log')){
-        $data = include './data.log';
-    }
-
-    if(empty($data)) $data = array();
-    return $data;
-}
 
 function postUser($v)
 {
