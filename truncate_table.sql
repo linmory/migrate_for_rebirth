@@ -3,3 +3,7 @@ TRUNCATE TABLE  `eva_blog_posts`;
 TRUNCATE TABLE  `eva_blog_tags`;
 TRUNCATE TABLE  `eva_blog_tags_posts`;
 TRUNCATE TABLE  `eva_blog_texts`;
+TRUNCATE TABLE  `eva_livenews_categories_news`;
+TRUNCATE TABLE  `eva_livenews_news`;
+TRUNCATE TABLE  `eva_livenews_texts`;
+TRUNCATE TABLE  `eva_file_files`;

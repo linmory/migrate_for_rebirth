@@ -8,17 +8,22 @@ define('F_NEWS_LIST_URL','http://wscn.dev/apiv1/migrate_livenews.json');
 define('F_NEWS_DETAIL_URL','http://wscn.dev/apiv1/node/%s.json');
 
 define('T_NEWS_DETAIL_URL','http://api.goldtoutiao.com/v2/livenews');
-define('MAX_PAGE',689);
 //define('MAX_PAGE',10);
 
 
-define('LOG_DIR','backup/livenews');
+define('LOG_DIR','backup/livenews/');
 
 $logData = getData();
 $currentMaxPage = !empty($logData['live_news']['currentMaxPage']) ? $logData['live_news']['currentMaxPage'] : 1;
-$currentMaxNid = !empty($logData['live_news']['$currentMaxNid']) ? $logData['live_news']['currentMaxNid'] : 0;
+//$currentMaxNid = !empty($logData['live_news']['$currentMaxNid']) ? $logData['live_news']['currentMaxNid'] : 0;
 
-print_r($currentMaxNid);
+//命令行中可用参数指定开始id
+if(($argc>1)&&is_numeric($argv[1])){
+    $currentMaxPage = $argv[1];
+//    $currentMaxNid = 0;
+}
+
+//print_r($currentMaxNid);
 
 
 //
@@ -97,16 +102,7 @@ $location = array(
 //"blue"=>'蓝色',
 //"black"=>'黑色',
 
-$color = array(
-    'red'=>'红色',
-    'blue'=>'蓝色',
-    'black'=>'黑色',
-);
-
 //格式
-$format = array(
-    'bold' => '加粗'
-);
 
 //图标
 //'alert' 提醒
@@ -117,23 +113,13 @@ $format = array(
 //'rumor' 传言
 //'warning' 警告
 //'news' 消息
-$icon = array(
-    'alert' => '提醒',
-    'calendar' => '日程',
-    'chart' => '折线',
-    'chart_pie' => '柱状',
-    'download' => '下载',
-    'rumor' => '传言',
-    'warning' => '警告',
-    'news' => '消息',
-);
 
 
 $img_arr = array('.jpg', '.png', '.jpeg', '.gif');
 
 //exit;
 
-for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
+for($page=$currentMaxPage;;$page++){
 //    echo $i.PHP_EOL;
     $request = new CURL(F_NEWS_LIST_URL);
     $response = $request->param('page', $page)
@@ -141,9 +127,15 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
 
 
     $data = json_decode($response,true);
+    if(empty($data)){
+        break;
+    }
+
     foreach($data as $k=>$v){
 
         $nid = $v['nid'];
+        echo 'nid:'.$nid.PHP_EOL;
+
         $dir = LOG_DIR.$page.'/'.$nid.'/';
 
 //        if($nid<$currentMaxNid)
@@ -154,7 +146,7 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
 
 
         $row = array();
-//        $row['id']   = $nid;
+        $row['id']   = $nid;
         $row['userId']   = $detail['uid'];
         $row['title'] = $detail['title'];
         $row['createdAt'] = $detail['created'];
@@ -202,8 +194,10 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
 
         //
         //保存文章中的图片 并转换路径
-        $row['text']['content'] = getImg($detail['body']['und'][0]['safe_value'],$dir);
-        $row['text']['content'] = removeImg($row['text']['content']);
+        $row['content'] = getImg($detail['body']['und'][0]['safe_value'],$dir);
+        $row['content'] = removeImg($row['content']);
+        $row['commentType'] = 'html';
+
 
         //保存附件图片
         if(!empty($detail['upload']['und'][0]['filename'])){
@@ -213,94 +207,29 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
             $row['image'] = $arr['localUrl'];
         }
 
-
         $row = json_encode($row);
         $request = new CURL(T_NEWS_DETAIL_URL);
         $response = $request->post($row);
+
+//        var_dump($response);
 //        $d = json_decode($response,true);
+//        print_r($d);
 
 
         logContent($dir.'content.old',$articleContent);
         logContent($dir.'content.new',$response);
 
-        print_r($row);
-        exit;
+
+//        print_r($row);
+//        exit;
     }
+
+    echo 'page:'.$page.PHP_EOL;
+    $logData['live_news']['currentMaxPage'] = intval($page);
+
+    saveData($logData);
 //    exit;
 
-}
-
-/**
- * 更新文章附件图片
- * @param $imageName
- * @param $dir
- * @return mixed
- */
-function uploadPostImage($imageName,$dir)
-{
-    $prefix = 'http://img.wallstreetcn.com/sites/default/files/';
-    $imageUrl = $prefix.$imageName;
-    echo 'upload img:'.$imageUrl.PHP_EOL;
-    $imagePath = $dir.'img/'.$imageName;
-    return $arr = imageTransfer($imageUrl,$imagePath);
-}
-
-/**
- * 将图片从线上转存到新的服务器
- * @param $imageUrl
- * @param $imageLocalPath
- * @return mixed
- */
-function imageTransfer($imageUrl,$imageLocalPath){
-    createDir($imageLocalPath);
-    copy($imageUrl,$imageLocalPath);
-
-    $data = array('file'=>'@'.$imageLocalPath);
-    $response = uploadImage($data);
-    $response = json_decode($response,true);
-    if(!isset($response['localUrl'])){
-        print_r($response);
-    }
-    return $response;
-}
-
-/**
- * 更新文章中的图片链接
- * @param $result
- * @param $dir
- * @return mixed
- */
-function getImg($result,$dir){
-    $result = preg_replace_callback('/src=([\'"])?(.*?)\\1/i',function ($matches) use($dir) {
-            $value = $matches[2];
-
-            echo 'content img:'.$value.PHP_EOL;
-            $arr = explode('/',$value);
-            $imageName = end($arr);
-            $imagePath = $dir.'img/'.$imageName;
-
-            if(stripos($value,'http://') === 0){
-                $imageUrl = $value;
-            }else{
-                $imageUrl = 'http://img.wallstreetcn.com/'.$value;
-            }
-
-            if(!isImage($imageUrl)){
-                echo 'not img!'.PHP_EOL;
-                return $matches[0];
-            }
-
-            $arr = imageTransfer($imageUrl,$imagePath);
-
-            if(isset($arr['localUrl'])){
-
-                //todo 添加域名
-                return str_replace($value,$arr['localUrl'],$matches[0]);
-            }else{
-                return $matches[0];
-            }
-        },$result);
-    return $result;
 }
 
 function removeImg($result){
@@ -315,7 +244,6 @@ function removeImg($result){
     return $result;
 }
 
-
 function isImage($imageUrl){
     global $img_arr;
 
@@ -329,30 +257,6 @@ function isImage($imageUrl){
 //            print_r($img_arr);
 }
 
-/**
- * 调用上传图片api
- * @param $data
- * @return mixed
- */
-function uploadImage($data){
-    $url = 'http://api.goldtoutiao.com/v2/media';
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-    $response = curl_exec($ch);
-    return $response;
-
-}
-
-function createDir($path){
-    $dir = dirname($path);
-    if(!is_dir($dir)){
-        mkdir($dir,0777,true);
-    }
-}
-
 function logContent($path,$articleContent){
     createDir($path);
     $fp = fopen($path,'w');
@@ -361,25 +265,3 @@ function logContent($path,$articleContent){
     echo 'log:'.$path.PHP_EOL;
     return $path;
 }
-
-//获取文件列表
-function getMaxNumber($dir) {
-    $max = 1;
-    if(!is_dir($dir)){
-        return $max;
-    }
-
-    if (false != ($handle = opendir ( $dir ))) {
-        $i=0;
-        while ( false !== ($file = readdir ( $handle )) ) {
-            //去掉"“.”、“..”以及带“.xxx”后缀的文件
-            if ($file != "." && $file != "..") {
-                $max = $file>$max ? $file : $max;
-            }
-        }
-        //关闭句柄
-        closedir ( $handle );
-    }
-    return $max;
-}
-

@@ -51,10 +51,16 @@ $maxId = $conn->fetchColumn('SELECT max(uid) as maxId FROM users');
 
 $logData = getData();
 $currentMaxUid = !empty($logData['user']['currentMaxUid']) ? $logData['user']['currentMaxUid'] : 0;
+
+//命令行中可用参数指定开始id
+if(($argc>1)&&is_numeric($argv[1])){
+    $currentMaxUid = $argv[1];
+//    $currentMaxNid = 0;
+}
 //$currentMaxUid = 0;
 
 $sqlHeader = <<<SQL
-    INSERT INTO `eva_user_users` (`id`,`username`, `email`, `status`, `accountType`, `screenName`, `password`, `avatarId`, `avatar`, `emailStatus`,  `createdAt`, `loginAt`, `providerType`)
+    INSERT INTO `eva_user_users` (`id`,`username`, `email`, `status`, `accountType`, `screenName`, `oldPassword`, `avatarId`, `avatar`, `emailStatus`,  `createdAt`, `loginAt`, `providerType`)
     VALUES
 SQL;
 
@@ -190,79 +196,6 @@ function login()
     return $user;
 }
 
-/**
- * 更新文章附件图片
- * @param $imageName
- * @param $dir
- * @return mixed
- */
-function uploadPostImage($imageName,$dir)
-{
-    $prefix = 'http://img.wallstreetcn.com/sites/default/files/';
-    $imageUrl = $prefix.$imageName;
-    echo 'upload img:'.$imageUrl.PHP_EOL;
-    $imagePath = $dir.'img/'.$imageName;
-    return $arr = imageTransfer($imageUrl,$imagePath);
-}
-
-/**
- * 将图片从线上转存到新的服务器
- * @param $imageUrl
- * @param $imageLocalPath
- * @return mixed
- */
-function imageTransfer($imageUrl,$imageLocalPath){
-    createDir($imageLocalPath);
-    copy($imageUrl,$imageLocalPath);
-
-    $data = array('file'=>'@'.$imageLocalPath);
-    $response = uploadImage($data);
-    $response = json_decode($response,true);
-    if(!isset($response['localUrl'])){
-        print_r($response);
-    }
-    return $response;
-}
-
-/**
- * 更新文章中的图片链接
- * @param $result
- * @param $dir
- * @return mixed
- */
-function getImg($result,$dir){
-    $result = preg_replace_callback('/src=([\'"])?(.*?)\\1/i',function ($matches) use($dir) {
-            $value = $matches[2];
-
-            echo 'content img:'.$value.PHP_EOL;
-            $arr = explode('/',$value);
-            $imageName = end($arr);
-            $imagePath = $dir.'img/'.$imageName;
-
-            if(stripos($value,'http://') === 0){
-                $imageUrl = $value;
-            }else{
-                $imageUrl = 'http://img.wallstreetcn.com/'.$value;
-            }
-
-            if(!isImage($imageUrl)){
-                echo 'not img!'.PHP_EOL;
-                return $matches[0];
-            }
-
-            $arr = imageTransfer($imageUrl,$imagePath);
-
-            if(isset($arr['localUrl'])){
-
-                //todo 添加域名
-                return str_replace($value,$arr['localUrl'],$matches[0]);
-            }else{
-                return $matches[0];
-            }
-        },$result);
-    return $result;
-}
-
 function removeImg($result){
     $result = preg_replace_callback('/href=([\'"])?(.*?)\\1/i',function ($matches) {
             $value = $matches[0];
@@ -289,30 +222,6 @@ function isImage($imageUrl){
 //            print_r($img_arr);
 }
 
-/**
- * 调用上传图片api
- * @param $data
- * @return mixed
- */
-function uploadImage($data){
-    $url = 'http://api.goldtoutiao.com/v2/media';
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-    $response = curl_exec($ch);
-    return $response;
-
-}
-
-function createDir($path){
-    $dir = dirname($path);
-    if(!is_dir($dir)){
-        mkdir($dir,0777,true);
-    }
-}
-
 function logContent($path,$articleContent){
     createDir($path);
     $fp = fopen($path,'w');
@@ -320,26 +229,5 @@ function logContent($path,$articleContent){
     fclose($fp);
     echo 'log:'.$path.PHP_EOL;
     return $path;
-}
-
-//获取文件列表
-function getMaxNumber($dir) {
-    $max = 1;
-    if(!is_dir($dir)){
-        return $max;
-    }
-
-    if (false != ($handle = opendir ( $dir ))) {
-        $i=0;
-        while ( false !== ($file = readdir ( $handle )) ) {
-            //去掉"“.”、“..”以及带“.xxx”后缀的文件
-            if ($file != "." && $file != "..") {
-                $max = $file>$max ? $file : $max;
-            }
-        }
-        //关闭句柄
-        closedir ( $handle );
-    }
-    return $max;
 }
 

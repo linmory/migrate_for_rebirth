@@ -2,8 +2,9 @@
 use BCA\CURL\CURL;
 
 include './init_autoloader.php';
+include './common.inc.php';
 
-define('F_NEWS_LIST_URL','http://wscn.dev/apiv1/migrate/post.json');
+define('F_NEWS_LIST_URL','http://wscn.dev/apiv1/migrate_post.json');
 define('F_NEWS_DETAIL_URL','http://wscn.dev/apiv1/node/%s.json');
 
 define('T_NEWS_DETAIL_URL','http://api.goldtoutiao.com/v2/post');
@@ -11,9 +12,21 @@ define('MAX_PAGE',689);
 //define('MAX_PAGE',10);
 
 
-define('LOG_DIR','backup/');
+define('LOG_DIR','backup/posts/');
+
 $currentMaxPage = getMaxNumber(LOG_DIR);
 $currentMaxNid = getMaxNumber(LOG_DIR.$currentMaxPage.'/');
+
+//命令行中可用参数指定开始id
+if(($argc>1)&&is_numeric($argv[1])){
+    $currentMaxPage = $argv[1];
+    $currentMaxNid = 0;
+}
+
+if(($argc>2)&&is_numeric($argv[2])){
+    $currentMaxNid = $argv[2];
+}
+
 print_r($currentMaxNid);
 
 //$arr = array(
@@ -84,6 +97,8 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
     foreach($data as $k=>$v){
 
         $nid = $v['nid'];
+        $row = array();
+        $row['count'] = $v['node_counter_totalcount'];
         $dir = LOG_DIR.$page.'/'.$nid.'/';
 
 //        if($nid<$currentMaxNid)
@@ -93,8 +108,7 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
         $detail = json_decode($response,true);
 
 
-        $row = array();
-//        $row['id']   = $nid;
+        $row['id']   = $nid;
         $row['userId']   = $detail['uid'];
         $row['title'] = $detail['title'];
         $row['createdAt'] = $detail['created'];
@@ -160,98 +174,6 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
 
 }
 
-function saveData($data)
-{
-    $str = '<?php'.PHP_EOL.'return ';
-    $str .= var_export($data,TRUE);
-    $str .= ';';
-
-    file_put_contents('./data.log',$str);
-}
-
-function getData()
-{
-    if(file_exists('./data.log')){
-        $data = include './data.log';
-    }
-
-    if(empty($data)) $data = array();
-    return $data;
-}
-
-/**
- * 更新文章附件图片
- * @param $imageName
- * @param $dir
- * @return mixed
- */
-function uploadPostImage($imageName,$dir)
-{
-    $prefix = 'http://img.wallstreetcn.com/sites/default/files/';
-    $imageUrl = $prefix.$imageName;
-    echo 'upload img:'.$imageUrl.PHP_EOL;
-    $imagePath = $dir.'img/'.$imageName;
-    return $arr = imageTransfer($imageUrl,$imagePath);
-}
-
-/**
- * 将图片从线上转存到新的服务器
- * @param $imageUrl
- * @param $imageLocalPath
- * @return mixed
- */
-function imageTransfer($imageUrl,$imageLocalPath){
-    createDir($imageLocalPath);
-    copy($imageUrl,$imageLocalPath);
-
-    $data = array('file'=>'@'.$imageLocalPath);
-    $response = uploadImage($data);
-    $response = json_decode($response,true);
-    if(!isset($response['localUrl'])){
-        print_r($response);
-    }
-    return $response;
-}
-
-/**
- * 更新文章中的图片链接
- * @param $result
- * @param $dir
- * @return mixed
- */
-function getImg($result,$dir){
-    $result = preg_replace_callback('/src=([\'"])?(.*?)\\1/i',function ($matches) use($dir) {
-            $value = $matches[2];
-
-            echo 'content img:'.$value.PHP_EOL;
-            $arr = explode('/',$value);
-            $imageName = end($arr);
-            $imagePath = $dir.'img/'.$imageName;
-
-            if(stripos($value,'http://') === 0){
-                $imageUrl = $value;
-            }else{
-                $imageUrl = 'http://img.wallstreetcn.com/'.$value;
-            }
-
-            if(!isImage($imageUrl)){
-                echo 'not img!'.PHP_EOL;
-                return $matches[0];
-            }
-
-            $arr = imageTransfer($imageUrl,$imagePath);
-
-            if(isset($arr['localUrl'])){
-
-                //todo 添加域名
-                return str_replace($value,$arr['localUrl'],$matches[0]);
-            }else{
-                return $matches[0];
-            }
-        },$result);
-    return $result;
-}
-
 function removeImg($result){
     $result = preg_replace_callback('/href=([\'"])?(.*?)\\1/i',function ($matches) {
             $value = $matches[0];
@@ -276,30 +198,6 @@ function isImage($imageUrl){
 
     return false;
 //            print_r($img_arr);
-}
-
-/**
- * 调用上传图片api
- * @param $data
- * @return mixed
- */
-function uploadImage($data){
-    $url = 'http://api.goldtoutiao.com/v2/media';
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-    $response = curl_exec($ch);
-    return $response;
-
-}
-
-function createDir($path){
-    $dir = dirname($path);
-    if(!is_dir($dir)){
-        mkdir($dir,0777,true);
-    }
 }
 
 function logContent($path,$articleContent){
