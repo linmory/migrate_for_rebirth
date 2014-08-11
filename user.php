@@ -14,25 +14,6 @@ define('MAX_PAGE',689);
 
 define('LOG_DIR','backup/user/');
 
-//$img_arr = array('.jpg', '.png', '.jpeg', '.gif');
-//
-//for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
-//    $user = login();
-//    $cookie = $user['session_name'] . '=' . $user['sessid'];
-//
-//    $request = new CURL(O_LIST_URL);
-//    $request->header( 'Cookie' , $cookie);
-//    $response = $request->param('page', $page)
-//        ->get();
-//    $data = json_decode($response,true);
-//    echo '<pre>';
-////    print_r($data);
-//
-//
-//
-//    exit;
-//}
-
 
 $config = new \Doctrine\DBAL\Configuration();
 //..
@@ -64,14 +45,11 @@ $sqlHeader = <<<SQL
     VALUES
 SQL;
 
-$path = './user.sql';
+$path = './sql/user.sql';
 if($currentMaxUid == 0){
     unlink($path);
 }
 
-//    createDir($path);
-//fwrite($fp, $sqlHeader);
-//fclose($fp);
 $fp = fopen($path,'a');
 
 for($uid=$currentMaxUid;$uid<=$maxId;){
@@ -83,12 +61,13 @@ for($uid=$currentMaxUid;$uid<=$maxId;){
     $stmt->execute();
 
     while ($row = $stmt->fetch()) {
-        $currentMaxUid = $row['uid'];
         $str = $sqlHeader;
+        $currentMaxUid = $row['uid'];
         $str .= postUser($row);
         $str .= ';'.PHP_EOL;
         fwrite($fp,$str);
         echo $currentMaxUid.PHP_EOL;
+
         $logData['user']['currentMaxUid'] = intval($currentMaxUid);
 
         saveData($logData);
@@ -100,11 +79,6 @@ for($uid=$currentMaxUid;$uid<=$maxId;){
 }
 
 fclose($fp);
-
-//var_dump($currentMaxUid);
-
-
-
 
 function postUser($v)
 {
@@ -134,6 +108,7 @@ function postUser($v)
         $nid = $row['id'];
 
         $dir = LOG_DIR.$nid.'/';
+
         $response = downUserContent($nid,$dir,O_DETAIL_URL);
 
         $data = json_decode($response,true);
@@ -145,26 +120,10 @@ function postUser($v)
         $row['avatar'] = $img['localUrl'];
     }
 
-//    $row = json_encode($row);
-//    $request = new CURL(N_DETAIL_URL);
-//    $response = $request->post($row);
-//        $d = json_decode($response,true);
-
-
     $str = "('%d','%s', '%s', 'active', 'basic', '%s', '%s', '%s', '%s', 'inactive', '%d', '%d', 'ADMIN')";
     $str = sprintf($str,$row['id'],$row['username'],$row['email'],$row['screenName'],$row['password'],$row['avatarId'], $row['avatar'],$row['createdAt'],$row['loginAt'],true);
 
     return $str;
-
-    $str .= ','.PHP_EOL;
-
-
-    $path = './user.sql';
-//    createDir($path);
-    $fp = fopen($path,'a');
-    fwrite($fp, $str);
-    fclose($fp);
-//    echo $response.PHP_EOL;
 }
 
 /**
@@ -191,15 +150,10 @@ function downUserContent($nid,$dir,$url){
     return $response;
 }
 
-function createSQL($path,$articleContent){
-    createDir($path);
-    $fp = fopen($path,'a');
-    fwrite($fp, $articleContent);
-    fclose($fp);
-//    echo 'log:'.$path.PHP_EOL;
-    return $path;
-}
-
+/**
+ * 模拟登陆，获得权限
+ * @return mixed
+ */
 function login()
 {
     static $user=null;

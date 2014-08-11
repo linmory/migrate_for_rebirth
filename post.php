@@ -82,8 +82,6 @@ $category_2 = array(
     7354 => 22,
 );
 
-$img_arr = array('.jpg', '.png', '.jpeg', '.gif');
-
 //exit;
 
 for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){

@@ -21,7 +21,7 @@ $maxId = $conn->fetchColumn('SELECT max(fid) as maxId FROM favorites');
 
 $sqlHeader = 'INSERT INTO `eva_blog_favors` (`userId`,`postId`,`createdAt`) VALUES ';
 
-$path = './favorites.sql';
+$path = './sql/favorites.sql';
 unlink($path);
 $currentMaxFid = 0;
 $fp = fopen($path,'a');

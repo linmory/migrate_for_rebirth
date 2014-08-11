@@ -73,7 +73,8 @@ function imageTransfer($imageUrl,$imageLocalPath){
     $response = uploadImage($imageLocalPath);
     $response = json_decode($response,true);
     if(!isset($response['localUrl'])){
-        print_r($response);
+        $str = $imageLocalPath.PHP_EOL.$imageUrl.PHP_EOL.var_export($response);
+        echoError($str);
     }
     return $response;
 }
@@ -172,7 +173,7 @@ function removeImgHost($result){
  * @return bool
  */
 function isImage($imageUrl){
-    global $img_arr;
+    $img_arr = array('.jpg', '.png', '.jpeg', '.gif');
 
     foreach($img_arr as $v){
         if(stripos($imageUrl,$v) !== false){
