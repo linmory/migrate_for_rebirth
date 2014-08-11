@@ -130,15 +130,16 @@ function postUser($v)
     $row['avatarId'] = '';
     $row['avatar'] = '';
     if(!empty($v['picture'])){
-        $user = login();
-        $cookie = $user['session_name'] . '=' . $user['sessid'];
 
-        $request = new CURL(sprintf(O_DETAIL_URL,$row['id']));
-        $request->header( 'Cookie' , $cookie);
-        $response = $request->get();
+        $nid = $row['id'];
+
+        $dir = LOG_DIR.$nid.'/';
+        $response = downUserContent($nid,$dir,O_DETAIL_URL);
+
         $data = json_decode($response,true);
+
         $imgUrl = str_replace('wscn.dev','img.wallstreetcn.com',$data['picture']['url']);
-        $imageLocalPath = LOG_DIR.$data['picture']['filename'];
+        $imageLocalPath = $dir.$data['picture']['filename'];
         $img = imageTransfer($imgUrl,$imageLocalPath);
         $row['avatarId'] = $img['id'];
         $row['avatar'] = $img['localUrl'];
@@ -164,6 +165,30 @@ function postUser($v)
     fwrite($fp, $str);
     fclose($fp);
 //    echo $response.PHP_EOL;
+}
+
+/**
+ * 下载用户详细信息
+ * @param $nid
+ * @param $dir
+ * @param $url
+ * @return string
+ */
+function downUserContent($nid,$dir,$url){
+    $file = $dir.'content.old';
+    if(file_exists($file)){
+        return file_get_contents($file);
+    }
+
+    $user = login();
+    $cookie = $user['session_name'] . '=' . $user['sessid'];
+
+    $request = new CURL(sprintf($url,$nid));
+    $request->header( 'Cookie' , $cookie);
+    $response = $request->get();
+
+    logContent($file,$response);
+    return $response;
 }
 
 function createSQL($path,$articleContent){
@@ -194,40 +219,5 @@ function login()
 
     }
     return $user;
-}
-
-function removeImg($result){
-    $result = preg_replace_callback('/href=([\'"])?(.*?)\\1/i',function ($matches) {
-            $value = $matches[0];
-            $value = str_ireplace('http://www.wallstreetcn.com/','',$value);
-            $value = str_ireplace('http://wallstreetcn.com/','',$value);
-            $value = str_ireplace('www.wallstreetcn.com/','',$value);
-            $value = str_ireplace('wallstreetcn.com/','',$value);
-            return $value;
-        },$result);
-    return $result;
-}
-
-
-function isImage($imageUrl){
-    global $img_arr;
-
-    foreach($img_arr as $v){
-        if(stripos($imageUrl,$v) !== false){
-            return true;
-        }
-    }
-
-    return false;
-//            print_r($img_arr);
-}
-
-function logContent($path,$articleContent){
-    createDir($path);
-    $fp = fopen($path,'w');
-    fwrite($fp, $articleContent);
-    fclose($fp);
-    echo 'log:'.$path.PHP_EOL;
-    return $path;
 }
 

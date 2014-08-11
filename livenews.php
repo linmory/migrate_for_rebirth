@@ -136,12 +136,10 @@ for($page=$currentMaxPage;;$page++){
         $nid = $v['nid'];
         echo 'nid:'.$nid.PHP_EOL;
 
-        $dir = LOG_DIR.$page.'/'.$nid.'/';
+        $dir = LOG_DIR.$nid.'/';
 
 //        if($nid<$currentMaxNid)
-        $request = new CURL(sprintf(F_NEWS_DETAIL_URL,$nid));
-        $response = $request->get();
-        $articleContent = $response;
+        $response = downContent($nid,$dir,F_NEWS_DETAIL_URL);
         $detail = json_decode($response,true);
 
 
@@ -195,13 +193,13 @@ for($page=$currentMaxPage;;$page++){
         //
         //保存文章中的图片 并转换路径
         $row['content'] = getImg($detail['body']['und'][0]['safe_value'],$dir);
-        $row['content'] = removeImg($row['content']);
+        $row['content'] = removeImgHost($row['content']);
         $row['commentType'] = 'html';
 
 
         //保存附件图片
         if(!empty($detail['upload']['und'][0]['filename'])){
-            $arr = uploadPostImage($detail['upload']['und'][0]['filename'],$dir);
+            $arr = uploadImage($detail['upload']['und'][0]['filename'],$dir);
 
             $row['imageId'] = $arr['id'];
             $row['image'] = $arr['localUrl'];
@@ -216,7 +214,6 @@ for($page=$currentMaxPage;;$page++){
 //        print_r($d);
 
 
-        logContent($dir.'content.old',$articleContent);
         logContent($dir.'content.new',$response);
 
 
@@ -230,38 +227,4 @@ for($page=$currentMaxPage;;$page++){
     saveData($logData);
 //    exit;
 
-}
-
-function removeImg($result){
-    $result = preg_replace_callback('/href=([\'"])?(.*?)\\1/i',function ($matches) {
-            $value = $matches[0];
-            $value = str_ireplace('http://www.wallstreetcn.com/','',$value);
-            $value = str_ireplace('http://wallstreetcn.com/','',$value);
-            $value = str_ireplace('www.wallstreetcn.com/','',$value);
-            $value = str_ireplace('wallstreetcn.com/','',$value);
-            return $value;
-        },$result);
-    return $result;
-}
-
-function isImage($imageUrl){
-    global $img_arr;
-
-    foreach($img_arr as $v){
-        if(stripos($imageUrl,$v) !== false){
-            return true;
-        }
-    }
-
-    return false;
-//            print_r($img_arr);
-}
-
-function logContent($path,$articleContent){
-    createDir($path);
-    $fp = fopen($path,'w');
-    fwrite($fp, $articleContent);
-    fclose($fp);
-    echo 'log:'.$path.PHP_EOL;
-    return $path;
 }

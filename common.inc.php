@@ -1,5 +1,25 @@
 <?php
 /**
+ * 下载新闻内容
+ * @param $nid
+ * @param $dir
+ * @param $url
+ * @return string
+ */
+function downContent($nid,$dir,$url){
+    $file = $dir.'content.old';
+    if(file_exists($file)){
+        return file_get_contents($file);
+    }
+
+    $request = new CURL(sprintf($url,$nid));
+    $response = $request->get();
+
+    logContent($file,$response);
+    return $response;
+}
+
+/**
  * 保存log data
  * @param $data
  */
@@ -33,7 +53,7 @@ function getData()
  * @param $dir
  * @return mixed
  */
-function uploadPostImage($imageName,$dir)
+function uploadFileImage($imageName,$dir)
 {
     $prefix = 'http://img.wallstreetcn.com/sites/default/files/';
     $imageUrl = $prefix.$imageName;
@@ -49,11 +69,8 @@ function uploadPostImage($imageName,$dir)
  * @return mixed
  */
 function imageTransfer($imageUrl,$imageLocalPath){
-    createDir($imageLocalPath);
-    copy($imageUrl,$imageLocalPath);
-
-    $data = array('file'=>'@'.$imageLocalPath);
-    $response = uploadImage($data);
+    downImage($imageUrl,$imageLocalPath);
+    $response = uploadImage($imageLocalPath);
     $response = json_decode($response,true);
     if(!isset($response['localUrl'])){
         print_r($response);
@@ -62,11 +79,25 @@ function imageTransfer($imageUrl,$imageLocalPath){
 }
 
 /**
+ * 下载图片
+ * @param $imageUrl
+ * @param $imageLocalPath
+ */
+function downImage($imageUrl,$imageLocalPath){
+    if(file_exists($imageLocalPath)) return;
+
+    createDir($imageLocalPath);
+    copy($imageUrl,$imageLocalPath);
+}
+
+/**
  * 调用上传图片api
- * @param $data
+ * @param $imageLocalPath
  * @return mixed
  */
-function uploadImage($data){
+function uploadImage($imageLocalPath){
+    $data = array('file'=>'@'.$imageLocalPath);
+
     $url = 'http://api.goldtoutiao.com/v2/media';
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -118,6 +149,42 @@ function getImg($result,$dir){
     return $result;
 }
 
+/**
+ * 移除图片前缀host
+ * @param $result
+ * @return mixed
+ */
+function removeImgHost($result){
+    $result = preg_replace_callback('/href=([\'"])?(.*?)\\1/i',function ($matches) {
+        $value = $matches[0];
+        $value = str_ireplace('http://www.wallstreetcn.com/','',$value);
+        $value = str_ireplace('http://wallstreetcn.com/','',$value);
+        $value = str_ireplace('www.wallstreetcn.com/','',$value);
+        $value = str_ireplace('wallstreetcn.com/','',$value);
+        return $value;
+    },$result);
+    return $result;
+}
+
+/**
+ * 判断是否为图片
+ * @param $imageUrl
+ * @return bool
+ */
+function isImage($imageUrl){
+    global $img_arr;
+
+    foreach($img_arr as $v){
+        if(stripos($imageUrl,$v) !== false){
+            return true;
+        }
+    }
+
+    return false;
+//            print_r($img_arr);
+}
+
+
 function createDir($path){
     $dir = dirname($path);
     if(!is_dir($dir)){
@@ -128,4 +195,14 @@ function createDir($path){
 function echoError($error)
 {
     fwrite(STDERR, $error);
+}
+
+
+function logContent($path,$articleContent){
+    createDir($path);
+    $fp = fopen($path,'w');
+    fwrite($fp, $articleContent);
+    fclose($fp);
+    echo 'log:'.$path.PHP_EOL;
+    return $path;
 }

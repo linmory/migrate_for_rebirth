@@ -99,12 +99,11 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
         $nid = $v['nid'];
         $row = array();
         $row['count'] = $v['node_counter_totalcount'];
+
         $dir = LOG_DIR.$page.'/'.$nid.'/';
 
 //        if($nid<$currentMaxNid)
-        $request = new CURL(sprintf(F_NEWS_DETAIL_URL,$nid));
-        $response = $request->get();
-        $articleContent = $response;
+        $response = downContent($nid,$dir,F_NEWS_DETAIL_URL);
         $detail = json_decode($response,true);
 
 
@@ -146,12 +145,12 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
         //
         //保存文章中的图片 并转换路径
         $row['text']['content'] = getImg($detail['body']['und'][0]['safe_value'],$dir);
-        $row['text']['content'] = removeImg($row['text']['content']);
+        $row['text']['content'] = removeImgHost($row['text']['content']);
         $row['summary'] = $detail['body']['und'][0]['safe_summary'];
 
         //保存附件图片
         if(!empty($detail['upload']['und'][0]['filename'])){
-            $arr = uploadPostImage($detail['upload']['und'][0]['filename'],$dir);
+            $arr = uploadFileImage($detail['upload']['und'][0]['filename'],$dir);
 
             $row['imageId'] = $arr['id'];
             $row['image'] = $arr['localUrl'];
@@ -164,7 +163,7 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
 //        $d = json_decode($response,true);
 
 
-        logContent($dir.'content.old',$articleContent);
+
         logContent($dir.'content.new',$response);
 
 //        print_r($row);
@@ -172,41 +171,6 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
     }
 //    exit;
 
-}
-
-function removeImg($result){
-    $result = preg_replace_callback('/href=([\'"])?(.*?)\\1/i',function ($matches) {
-            $value = $matches[0];
-            $value = str_ireplace('http://www.wallstreetcn.com/','',$value);
-            $value = str_ireplace('http://wallstreetcn.com/','',$value);
-            $value = str_ireplace('www.wallstreetcn.com/','',$value);
-            $value = str_ireplace('wallstreetcn.com/','',$value);
-            return $value;
-        },$result);
-    return $result;
-}
-
-
-function isImage($imageUrl){
-    global $img_arr;
-
-    foreach($img_arr as $v){
-        if(stripos($imageUrl,$v) !== false){
-            return true;
-        }
-    }
-
-    return false;
-//            print_r($img_arr);
-}
-
-function logContent($path,$articleContent){
-    createDir($path);
-    $fp = fopen($path,'w');
-    fwrite($fp, $articleContent);
-    fclose($fp);
-    echo 'log:'.$path.PHP_EOL;
-    return $path;
 }
 
 //获取文件列表
