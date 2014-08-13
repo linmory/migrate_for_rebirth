@@ -12,7 +12,7 @@ function downContent($nid,$dir,$url){
         return file_get_contents($file);
     }
 
-    $request = new CURL(sprintf($url,$nid));
+    $request = new \BCA\CURL\CURL(sprintf($url,$nid));
     $response = $request->get();
 
     logContent($file,$response);
@@ -56,8 +56,9 @@ function getData()
 function uploadFileImage($imageName,$dir)
 {
     $prefix = 'http://img.wallstreetcn.com/sites/default/files/';
+    $imageName = rawurlencode($imageName);
     $imageUrl = $prefix.$imageName;
-    echo 'upload img:'.$imageUrl.PHP_EOL;
+//    echo 'upload img:'.$imageUrl.PHP_EOL;
     $imagePath = $dir.'img/'.$imageName;
     return $arr = imageTransfer($imageUrl,$imagePath);
 }
@@ -69,11 +70,16 @@ function uploadFileImage($imageName,$dir)
  * @return mixed
  */
 function imageTransfer($imageUrl,$imageLocalPath){
-    downImage($imageUrl,$imageLocalPath);
+    $a = downImage($imageUrl,$imageLocalPath);
+    if(!$a){
+        echoError($imageLocalPath);
+        return array();
+    }
+
     $response = uploadImage($imageLocalPath);
     $response = json_decode($response,true);
     if(!isset($response['localUrl'])){
-        $str = $imageLocalPath.PHP_EOL.$imageUrl.PHP_EOL.var_export($response);
+        $str = var_export($response,TRUE).PHP_EOL.$imageLocalPath.PHP_EOL.$imageUrl.PHP_EOL;
         echoError($str);
     }
     return $response;
@@ -83,12 +89,13 @@ function imageTransfer($imageUrl,$imageLocalPath){
  * 下载图片
  * @param $imageUrl
  * @param $imageLocalPath
+ * @return bool
  */
 function downImage($imageUrl,$imageLocalPath){
-    if(file_exists($imageLocalPath)) return;
+    if(file_exists($imageLocalPath)) return true;
 
     createDir($imageLocalPath);
-    copy($imageUrl,$imageLocalPath);
+    return copy($imageUrl,$imageLocalPath);
 }
 
 /**
@@ -120,7 +127,7 @@ function getImg($result,$dir){
     $result = preg_replace_callback('/src=([\'"])?(.*?)\\1/i',function ($matches) use($dir) {
             $value = $matches[2];
 
-            echo 'content img:'.$value.PHP_EOL;
+//            echo 'content img:'.$value.PHP_EOL;
             $arr = explode('/',$value);
             $imageName = end($arr);
             $imagePath = $dir.'img/'.$imageName;
@@ -132,8 +139,9 @@ function getImg($result,$dir){
             }
 
             if(!isImage($imageUrl)){
-                $error = 'not img!'.PHP_EOL;
-                echoError($error);
+                $error = 'not img:'.$imageUrl.PHP_EOL;
+//                echoError($error);
+                echo $error;
                 return $matches[0];
             }
 
@@ -195,6 +203,7 @@ function createDir($path){
 
 function echoError($error)
 {
+    $error .= PHP_EOL;
     fwrite(STDERR, $error);
 }
 
@@ -204,6 +213,6 @@ function logContent($path,$articleContent){
     $fp = fopen($path,'w');
     fwrite($fp, $articleContent);
     fclose($fp);
-    echo 'log:'.$path.PHP_EOL;
+//    echo 'log:'.$path.PHP_EOL;
     return $path;
 }

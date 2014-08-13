@@ -18,8 +18,10 @@ $currentMaxPage = getMaxNumber(LOG_DIR);
 $currentMaxNid = getMaxNumber(LOG_DIR.$currentMaxPage.'/');
 
 //命令行中可用参数指定开始id
+//var_dump($argv); var_dump($argc);
 if(($argc>1)&&is_numeric($argv[1])){
-    $currentMaxPage = $argv[1];
+    $currentMaxPage = intval($argv[1]);
+    if($currentMaxPage == 0) $currentMaxPage = 1;
     $currentMaxNid = 0;
 }
 
@@ -27,7 +29,7 @@ if(($argc>2)&&is_numeric($argv[2])){
     $currentMaxNid = $argv[2];
 }
 
-print_r($currentMaxNid);
+//print_r($currentMaxNid);
 
 //$arr = array(
 //    13761 => '世界杯',
@@ -85,6 +87,7 @@ $category_2 = array(
 //exit;
 
 for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
+    echo 'page:'.$page.PHP_EOL;
 //    echo $i.PHP_EOL;
     $request = new CURL(F_NEWS_LIST_URL);
     $response = $request->param('page', $page)
@@ -95,6 +98,7 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
     foreach($data as $k=>$v){
 
         $nid = $v['nid'];
+        echo 'nid:'.$nid.PHP_EOL;
         $row = array();
         $row['count'] = $v['node_counter_totalcount'];
 
