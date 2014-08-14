@@ -146,9 +146,12 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
 
         //
         //保存文章中的图片 并转换路径
-        $row['text']['content'] = getImg($detail['body']['und'][0]['safe_value'],$dir);
+        $value = isset($detail['body']['und'][0]['safe_value']) ? $detail['body']['und'][0]['safe_value'] : $detail['body']['und'][0]['value'];
+        $summary = isset($detail['body']['und'][0]['safe_summary']) ? $detail['body']['und'][0]['safe_summary'] : $detail['body']['und'][0]['summary'];
+
+        $row['text']['content'] = getImg($value,$dir);
         $row['text']['content'] = removeImgHost($row['text']['content']);
-        $row['summary'] = $detail['body']['und'][0]['safe_summary'];
+        $row['summary'] = $summary;
 
         //保存附件图片
         if(!empty($detail['upload']['und'][0]['filename'])){

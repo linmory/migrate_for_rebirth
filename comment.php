@@ -27,7 +27,7 @@ $connectionParams = array(
 
 $conn = \Doctrine\DBAL\DriverManager::getConnection($connectionParams, $config);
 
-$maxId = $conn->fetchColumn('SELECT max(uid) as maxId FROM users');
+$maxId = $conn->fetchColumn('SELECT max(cid) as maxId FROM comment');
 
 
 $logData = getData();

@@ -6,12 +6,17 @@ list:
 	@echo "livenews-dev"
 
 
-cc-dev:
-	rm -rf backup/*
-	mysql -hlocalhost -uroot -ppassword scrapy<./truncate_table.sql
+cc-all:
+	sudo rm -rf ../phalcon/public/uploads/*
+	mysql -hlocalhost -uroot -ppassword scrapy<./sql/truncate_tables.sql
 
 log-dev:
 	tail -f ./logs/run-dev.log
+
+run-all:
+	php user.php 0 >./logs/user-run-dev.log 2>./logs/user-run-dev_error.log &
+	php post.php 0 >./logs/post-run-dev.log 2>./logs/post-run-dev_error.log &
+	php livenews.php 0 >./logs/livenews-run-dev.log 2>./logs/livenews-run-dev_error.log &
 
 user-dev:
 	php user.php 0 >./logs/user-run-dev.log 2>./logs/user-run-dev_error.log &

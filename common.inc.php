@@ -70,6 +70,13 @@ function uploadFileImage($imageName,$dir)
  * @return mixed
  */
 function imageTransfer($imageUrl,$imageLocalPath){
+
+    //去除图片链接？后的字符
+    $i = strpos($imageLocalPath,'?');
+    if($i !== false){
+        $imageLocalPath = substr($imageLocalPath,0,$i);
+    }
+
     $a = downImage($imageUrl,$imageLocalPath);
     if(!$a){
         echoError($imageLocalPath);
@@ -93,6 +100,8 @@ function imageTransfer($imageUrl,$imageLocalPath){
  */
 function downImage($imageUrl,$imageLocalPath){
     if(file_exists($imageLocalPath)) return true;
+
+    if(strpos($imageUrl,'http://wscnimg.storage.aliyun.com/') == true) return false;
 
     createDir($imageLocalPath);
     return copy($imageUrl,$imageLocalPath);
