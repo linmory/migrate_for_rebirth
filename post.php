@@ -7,7 +7,7 @@ include './common.inc.php';
 define('F_NEWS_LIST_URL','http://wscn.dev/apiv1/migrate_post.json');
 define('F_NEWS_DETAIL_URL','http://wscn.dev/apiv1/node/%s.json');
 
-define('T_NEWS_DETAIL_URL','http://api.goldtoutiao.com/v2/post');
+define('T_NEWS_DETAIL_URL','http://api.goldtoutiao.com/v2/admin/posts');
 define('MAX_PAGE',689);
 //define('MAX_PAGE',10);
 
@@ -86,15 +86,18 @@ $category_2 = array(
 
 //exit;
 
-for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
+for($page=$currentMaxPage;;$page++){
     echo 'page:'.$page.PHP_EOL;
 //    echo $i.PHP_EOL;
     $request = new CURL(F_NEWS_LIST_URL);
     $response = $request->param('page', $page)
                         ->get();
 
-
     $data = json_decode($response,true);
+    if(empty($data)){
+        break;
+    }
+
     foreach($data as $k=>$v){
 
         $nid = $v['nid'];
@@ -102,12 +105,13 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
         $row = array();
         $row['count'] = $v['node_counter_totalcount'];
 
+        $updatedAt = $v['node_changed'];
+
         $dir = LOG_DIR.$page.'/'.$nid.'/';
 
 //        if($nid<$currentMaxNid)
-        $response = downContent($nid,$dir,F_NEWS_DETAIL_URL);
+        $response = downContent($nid,$dir,F_NEWS_DETAIL_URL,$updatedAt);
         $detail = json_decode($response,true);
-
 
         $row['id']   = $nid;
         $row['userId']   = $detail['uid'];
@@ -151,6 +155,9 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
 
         $row['text']['content'] = getImg($value,$dir);
         $row['text']['content'] = removeImgHost($row['text']['content']);
+
+        $row['text']['content'] = str_replace('点击下载 华尔街见闻App，随时随地把握全球金融市场脉搏。','',$row['text']['content']);
+
         $row['summary'] = $summary;
 
         //保存附件图片
@@ -165,8 +172,10 @@ for($page=$currentMaxPage;$page<=MAX_PAGE;$page++){
         $row = json_encode($row);
         $request = new CURL(T_NEWS_DETAIL_URL);
         $response = $request->post($row);
-//        $d = json_decode($response,true);
 
+//        echo $response;
+//        $d = json_decode($response,true);
+//        var_dump($d);
 
 
         logContent($dir.'content.new',$response);
@@ -198,4 +207,5 @@ function getMaxNumber($dir) {
     }
     return $max;
 }
+
 

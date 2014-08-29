@@ -7,7 +7,7 @@ include './common.inc.php';
 define('O_LIST_URL','http://wscn.dev/apiv1/user.json');
 define('O_DETAIL_URL','http://wscn.dev/apiv1/user/%s.json');
 
-define('N_DETAIL_URL','http://api.goldtoutiao.com/v2/user');
+define('N_DETAIL_URL','http://api.goldtoutiao.com/v2/admin/users');
 define('MAX_PAGE',689);
 //define('MAX_PAGE',10);
 
@@ -23,6 +23,7 @@ $connectionParams = array(
     'password' => 'password',
     'host' => 'localhost',
     'driver' => 'pdo_mysql',
+    'charset' => 'utf8',
 );
 
 $conn = \Doctrine\DBAL\DriverManager::getConnection($connectionParams, $config);
@@ -41,7 +42,7 @@ if(($argc>1)&&is_numeric($argv[1])){
 //$currentMaxUid = 0;
 
 $sqlHeader = <<<SQL
-INSERT INTO `eva_user_users` (`id`,`username`, `email`, `status`, `accountType`, `screenName`, `oldPassword`, `avatarId`, `avatar`, `emailStatus`,  `createdAt`, `loginAt`, `providerType`)
+INSERT INTO `eva_user_users` (`id`,`username`, `email`, `status`, `accountType`, `screenName`, `password`, `oldPassword`, `avatarId`, `avatar`, `emailStatus`,  `createdAt`, `loginAt`, `providerType`)
 VALUES
 SQL;
 
@@ -90,10 +91,11 @@ function postUser($v)
     $row['email'] = mysql_real_escape_string($v['mail']);
 
 
-    if(preg_match('/^[0-9a-zA-Z]+$/',$v['name'])){
+    if(preg_match('/^[0-9a-zA-Z_\]+$/',$v['name'])){
         $row['username'] = $v['name'];
     }else{
-        $row['username'] = $row['email'];
+        $name = $row['id']+100000;
+        $row['username'] = 'wscn_user_'.$name;
     }
     $row['screenName'] = mysql_real_escape_string($v['name']);
     $row['password'] = $v['pass'];
@@ -123,7 +125,7 @@ function postUser($v)
         $row['avatar'] = $img['localUrl'];
     }
 
-    $str = "('%d','%s', '%s', 'active', 'basic', '%s', '%s', '%s', '%s', 'inactive', '%d', '%d', 'ADMIN')";
+    $str = "('%d','%s', '%s', 'active', 'basic', '%s', '1234','%s', '%s', '%s', 'inactive', '%d', '%d', 'ADMIN')";
     $str = sprintf($str,$row['id'],$row['username'],$row['email'],$row['screenName'],$row['password'],$row['avatarId'], $row['avatar'],$row['createdAt'],$row['loginAt'],true);
 
     return $str;
@@ -165,7 +167,7 @@ function login()
         $url = 'http://wscn.dev/apiv1/user/login.json';
         $requestData = array(
             'username' => 'AlloVince',
-            'password' => '123456',
+            'password' => 'huaerjie001',
         );
 
         $request = new CURL($url);

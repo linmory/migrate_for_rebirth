@@ -1,13 +1,17 @@
 <?php
+
+define('MEDIA_URL','http://api.goldtoutiao.com/v2/admin/media');
+
 /**
  * 下载新闻内容
  * @param $nid
  * @param $dir
  * @param $url
+ * @param $updatedAt
  * @return string
  */
-function downContent($nid,$dir,$url){
-    $file = $dir.'content.old';
+function downContent($nid,$dir,$url,$updatedAt){
+    $file = $dir.'content.old.'.$updatedAt;
     if(file_exists($file)){
         return file_get_contents($file);
     }
@@ -115,13 +119,14 @@ function downImage($imageUrl,$imageLocalPath){
 function uploadImage($imageLocalPath){
     $data = array('file'=>'@'.$imageLocalPath);
 
-    $url = 'http://api.goldtoutiao.com/v2/media';
+    $url = MEDIA_URL;
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
     $response = curl_exec($ch);
+//    var_dump($response);
     return $response;
 
 }
