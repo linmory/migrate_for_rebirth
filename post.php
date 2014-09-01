@@ -4,8 +4,8 @@ use BCA\CURL\CURL;
 include './init_autoloader.php';
 include './common.inc.php';
 
-define('F_NEWS_LIST_URL','http://wscn.dev/apiv1/migrate_post.json');
-define('F_NEWS_DETAIL_URL','http://wscn.dev/apiv1/node/%s.json');
+define('F_NEWS_LIST_URL','http://wallstreetcn.com/apiv1/migrate_post.json');
+define('F_NEWS_DETAIL_URL','http://wallstreetcn.com/apiv1/node/%s.json');
 
 define('T_NEWS_DETAIL_URL','http://api.goldtoutiao.com/v2/admin/posts');
 define('MAX_PAGE',689);
@@ -14,8 +14,12 @@ define('MAX_PAGE',689);
 
 define('LOG_DIR','backup/posts/');
 
-$currentMaxPage = getMaxNumber(LOG_DIR);
-$currentMaxNid = getMaxNumber(LOG_DIR.$currentMaxPage.'/');
+//$currentMaxPage = getMaxNumber(LOG_DIR);
+//$currentMaxNid = getMaxNumber(LOG_DIR.$currentMaxPage.'/');
+
+$logData = getData();
+$currentMaxPage = !empty($logData['post']['currentMaxPage']) ? $logData['post']['currentMaxPage'] : 1;
+$currentMaxNid = !empty($logData['post']['currentMaxNid']) ? $logData['post']['currentMaxNid'] : 0;
 
 //命令行中可用参数指定开始id
 //var_dump($argv); var_dump($argc);
@@ -28,6 +32,9 @@ if(($argc>1)&&is_numeric($argv[1])){
 if(($argc>2)&&is_numeric($argv[2])){
     $currentMaxNid = $argv[2];
 }
+
+echo 'current max page:'.$currentMaxPage.PHP_EOL;
+echo 'current max nid:'.$currentMaxNid.PHP_EOL;
 
 //print_r($currentMaxNid);
 
@@ -87,7 +94,6 @@ $category_2 = array(
 //exit;
 
 for($page=$currentMaxPage;;$page++){
-    echo 'page:'.$page.PHP_EOL;
 //    echo $i.PHP_EOL;
     $request = new CURL(F_NEWS_LIST_URL);
     $response = $request->param('page', $page)
@@ -101,6 +107,9 @@ for($page=$currentMaxPage;;$page++){
     foreach($data as $k=>$v){
 
         $nid = $v['nid'];
+
+        if($nid<=$currentMaxNid) continue;
+
         echo 'nid:'.$nid.PHP_EOL;
         $row = array();
         $row['count'] = $v['node_counter_totalcount'];
@@ -168,7 +177,7 @@ for($page=$currentMaxPage;;$page++){
             $row['image'] = $arr['localUrl'];
         }
 
-
+//        print_r($row);
         $row = json_encode($row);
         $request = new CURL(T_NEWS_DETAIL_URL);
         $response = $request->post($row);
@@ -183,6 +192,9 @@ for($page=$currentMaxPage;;$page++){
 //        print_r($row);
 //        exit;
     }
+    echo 'page:'.$page.PHP_EOL;
+
+
 //    exit;
 
 }

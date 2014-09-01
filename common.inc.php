@@ -178,12 +178,12 @@ function getImg($result,$dir){
  * @return mixed
  */
 function removeImgHost($result){
-    $result = preg_replace_callback('/href=([\'"])?(.*?)\\1/i',function ($matches) {
+    $result = preg_replace_callback('/src=([\'"])?(.*?)\\1/i',function ($matches) {
         $value = $matches[0];
-        $value = str_ireplace('http://www.wallstreetcn.com/','',$value);
-        $value = str_ireplace('http://wallstreetcn.com/','',$value);
-        $value = str_ireplace('www.wallstreetcn.com/','',$value);
-        $value = str_ireplace('wallstreetcn.com/','',$value);
+        $value = str_ireplace('http://www.wallstreetcn.com/','/',$value);
+        $value = str_ireplace('http://wallstreetcn.com/','/',$value);
+        $value = str_ireplace('www.wallstreetcn.com/','/',$value);
+        $value = str_ireplace('wallstreetcn.com/','/',$value);
         return $value;
     },$result);
     return $result;

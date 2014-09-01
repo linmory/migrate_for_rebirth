@@ -7,7 +7,7 @@ list:
 
 
 cc-all:
-	sudo rm -rf ../phalcon/public/uploads/*
+	sudo rm -rf ../wallstreetcn/public/uploads/*
 	mysql -hlocalhost -uroot -ppassword scrapy<./sql/truncate_tables.sql
 
 log-dev:

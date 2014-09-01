@@ -4,8 +4,8 @@ use BCA\CURL\CURL;
 include './init_autoloader.php';
 include './common.inc.php';
 
-define('F_NEWS_LIST_URL','http://wscn.dev/apiv1/migrate_livenews.json');
-define('F_NEWS_DETAIL_URL','http://wscn.dev/apiv1/node/%s.json');
+define('F_NEWS_LIST_URL','http://wallstreetcn.com/apiv1/migrate_livenews.json');
+define('F_NEWS_DETAIL_URL','http://wallstreetcn.com/apiv1/node/%s.json');
 
 define('T_NEWS_DETAIL_URL','http://api.goldtoutiao.com/v2/admin/livenews');
 //define('MAX_PAGE',10);
@@ -15,13 +15,16 @@ define('LOG_DIR','backup/livenews/');
 
 $logData = getData();
 $currentMaxPage = !empty($logData['live_news']['currentMaxPage']) ? $logData['live_news']['currentMaxPage'] : 1;
-//$currentMaxNid = !empty($logData['live_news']['$currentMaxNid']) ? $logData['live_news']['currentMaxNid'] : 0;
+$currentMaxNid = !empty($logData['live_news']['currentMaxNid']) ? $logData['live_news']['currentMaxNid'] : 0;
 
 //命令行中可用参数指定开始id
 if(($argc>1)&&is_numeric($argv[1])){
     $currentMaxPage = $argv[1];
 //    $currentMaxNid = 0;
 }
+
+echo 'current max page:'.$currentMaxPage.PHP_EOL;
+echo 'current max nid:'.$currentMaxNid.PHP_EOL;
 
 //print_r($currentMaxNid);
 
@@ -120,7 +123,6 @@ $img_arr = array('.jpg', '.png', '.jpeg', '.gif');
 //exit;
 
 for($page=$currentMaxPage;;$page++){
-//    echo $i.PHP_EOL;
     $request = new CURL(F_NEWS_LIST_URL);
     $response = $request->param('page', $page)
                         ->get();
@@ -134,7 +136,8 @@ for($page=$currentMaxPage;;$page++){
     foreach($data as $k=>$v){
 
         $nid = $v['nid'];
-//        echo 'nid:'.$nid.PHP_EOL;
+        if($nid<=$currentMaxNid) continue;
+        echo 'nid:'.$nid.PHP_EOL;
 
         $dir = LOG_DIR.$nid.'/';
 
@@ -144,9 +147,9 @@ for($page=$currentMaxPage;;$page++){
         $response = downContent($nid,$dir,F_NEWS_DETAIL_URL,$updatedAt);
         $detail = json_decode($response,true);
 
-        $str = $detail['body']['und'][0]['value'];
-        textTransformData($str);
-        continue;
+//        $str = $detail['body']['und'][0]['value'];
+//        textTransformData($str);
+//        continue;
 
 
         $row = array();
@@ -257,9 +260,10 @@ for($page=$currentMaxPage;;$page++){
     }
 
     echo 'page:'.$page.PHP_EOL;
+
     $logData['live_news']['currentMaxPage'] = intval($page);
 
-    saveData($logData);
+//    saveData($logData);
 //    exit;
 
 }

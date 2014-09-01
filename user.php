@@ -4,8 +4,8 @@ use BCA\CURL\CURL;
 include './init_autoloader.php';
 include './common.inc.php';
 
-define('O_LIST_URL','http://wscn.dev/apiv1/user.json');
-define('O_DETAIL_URL','http://wscn.dev/apiv1/user/%s.json');
+define('O_LIST_URL','http://wallstreetcn.com/apiv1/user.json');
+define('O_DETAIL_URL','http://wallstreetcn.com/apiv1/user/%s.json');
 
 define('N_DETAIL_URL','http://api.goldtoutiao.com/v2/admin/users');
 define('MAX_PAGE',689);
@@ -76,7 +76,7 @@ for($uid=$currentMaxUid;$uid<=$maxId;){
 
     echo $currentMaxUid.PHP_EOL;
     $logData['user']['currentMaxUid'] = intval($currentMaxUid);
-    saveData($logData);
+//    saveData($logData);
 
     if($currentMaxUid>=$maxId) break;
 
@@ -91,7 +91,7 @@ function postUser($v)
     $row['email'] = mysql_real_escape_string($v['mail']);
 
 
-    if(preg_match('/^[0-9a-zA-Z_\]+$/',$v['name'])){
+    if(preg_match('/^[0-9a-zA-Z_]+$/',$v['name'])){
         $row['username'] = $v['name'];
     }else{
         $name = $row['id']+100000;
@@ -118,7 +118,7 @@ function postUser($v)
 
         $data = json_decode($response,true);
 
-        $imgUrl = str_replace('wscn.dev','img.wallstreetcn.com',$data['picture']['url']);
+        $imgUrl = str_replace('wallstreetcn.com','img.wallstreetcn.com',$data['picture']['url']);
         $imageLocalPath = $dir.$data['picture']['filename'];
         $img = imageTransfer($imgUrl,$imageLocalPath);
         $row['avatarId'] = $img['id'];
@@ -164,7 +164,7 @@ function login()
     static $user=null;
 
     if($user === null){
-        $url = 'http://wscn.dev/apiv1/user/login.json';
+        $url = 'http://wallstreetcn.com/apiv1/user/login.json';
         $requestData = array(
             'username' => 'AlloVince',
             'password' => 'huaerjie001',
